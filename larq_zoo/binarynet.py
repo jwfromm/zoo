@@ -1,10 +1,10 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import larq as lq
 import tensorflow as tf
 from tensorflow import keras
 from zookeeper import component
-from zookeeper.tf import Dataset, TFDSDataset
+from zookeeper.tf import Dataset
 
 from larq_zoo import utils
 from larq_zoo.model import LarqZooModel
@@ -62,7 +62,9 @@ class BinaryAlexNet(LarqZooModel):
         return x
 
     def build(
-        self, input_shape: Tuple[int, int, int] = None, input_tensor: tf.Tensor = None
+        self,
+        input_shape: Optional[Tuple[int, int, int]] = None,
+        input_tensor: Optional[tf.Tensor] = None,
     ) -> keras.models.Model:
 
         input_shape = utils.validate_input(
@@ -98,7 +100,7 @@ class BinaryAlexNet(LarqZooModel):
 
         # Load weights.
         if self.weights == "imagenet":
-            # download appropriate file
+            # Download appropriate file
             if self.include_top:
                 weights_path = utils.download_pretrained_model(
                     model="binary_alexnet",
