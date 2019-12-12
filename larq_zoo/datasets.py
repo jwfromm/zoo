@@ -4,14 +4,14 @@ from zookeeper.tf import TFDSDataset
 
 @component
 class ImageNet(TFDSDataset):
-    name = "imagenet2012:5.0.0"
+    name = "imagenet2012:5.0.*"
     train_split = "train"
     validation_split = "validation"
 
 
 @component
 class Cifar10(TFDSDataset):
-    name = "cifar10"
+    name = "cifar10:3.0.*"
     train_split = "train"
     validation_split = "test"
 
