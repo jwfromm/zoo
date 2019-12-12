@@ -3,15 +3,15 @@ from typing import Optional, Tuple
 import larq as lq
 import tensorflow as tf
 from tensorflow import keras
-from zookeeper import component
-from zookeeper.tf import Dataset
+from zookeeper import component, task
+from zookeeper.tf import Dataset, Model
 
 from larq_zoo import utils
-from larq_zoo.model import LarqZooModel
+from larq_zoo.train import TrainLarqZooModel
 
 
 @component
-class BinaryAlexNet(LarqZooModel):
+class BinaryAlexNet(Model):
     """
     Implementation of ["Binarized Neural
     Networks"](https://papers.nips.cc/paper/6573-binarized-neural-networks) by
@@ -29,7 +29,6 @@ class BinaryAlexNet(LarqZooModel):
         use_bias=False,
     )
 
-    @tf.function
     def conv_block(
         self,
         x: tf.Tensor,
@@ -55,7 +54,6 @@ class BinaryAlexNet(LarqZooModel):
         x = keras.layers.BatchNormalization(scale=False, momentum=0.9)(x)
         return x
 
-    @tf.function
     def dense_block(self, x: tf.Tensor, units: int) -> tf.Tensor:
         x = lq.layers.QuantDense(units, **self.kwhparams)(x)
         x = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)(x)
@@ -65,10 +63,12 @@ class BinaryAlexNet(LarqZooModel):
         self,
         input_shape: Optional[Tuple[int, int, int]] = None,
         input_tensor: Optional[tf.Tensor] = None,
+        include_top=True,
+        weights="imagenet",
     ) -> keras.models.Model:
 
         input_shape = utils.validate_input(
-            input_shape, self.weights, self.include_top, self.dataset.num_classes
+            input_shape, weights, include_top, self.dataset.num_classes
         )
         img_input = utils.get_input_layer(input_shape, input_tensor)
 
@@ -89,7 +89,7 @@ class BinaryAlexNet(LarqZooModel):
         )
 
         # Classifier
-        if self.include_top:
+        if include_top:
             out = keras.layers.Flatten()(out)
             out = self.dense_block(out, units=4096)
             out = self.dense_block(out, units=4096)
@@ -99,9 +99,9 @@ class BinaryAlexNet(LarqZooModel):
         model = keras.Model(inputs=img_input, outputs=out, name="binary_alexnet")
 
         # Load weights.
-        if self.weights == "imagenet":
+        if weights == "imagenet":
             # Download appropriate file
-            if self.include_top:
+            if include_top:
                 weights_path = utils.download_pretrained_model(
                     model="binary_alexnet",
                     version="v0.2.0",
@@ -116,7 +116,22 @@ class BinaryAlexNet(LarqZooModel):
                     file_hash="1c7e2ef156edd8e7615e75a3b8929f9025279a948d1911824c2f5a798042475e",
                 )
             model.load_weights(weights_path)
-        elif self.weights is not None:
-            model.load_weights(self.weights)
+        elif weights is not None:
+            model.load_weights(weights)
 
         return model
+
+
+@task
+class TrainBinaryNet(TrainLarqZooModel):
+    model = BinaryAlexNet()
+
+    batch_size = 512
+    epochs = 150
+
+    def learning_rate_schedule(self, epoch):
+        return 1e-2 * 0.5 ** (epoch // 10)
+
+    @property
+    def optimizer(self):
+        return keras.optimizers.Adam(self.learning_rate_schedule(0))

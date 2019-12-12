@@ -1,14 +1,15 @@
-import os
-import sys
-import tensorflow as tf
 import contextlib
 import json
-from tensorflow.python.keras.backend import is_keras_tensor
-from tensorflow.python.eager.context import num_gpus
+import os
+import sys
+
+import tensorflow as tf
 from keras_applications.imagenet_utils import _obtain_input_shape
 from tensorflow.keras.applications.vgg16 import (
     decode_predictions as keras_decode_predictions,
 )
+from tensorflow.python.eager.context import num_gpus
+from tensorflow.python.keras.backend import is_keras_tensor
 
 
 def slash_join(*args):
@@ -34,7 +35,7 @@ def get_current_epoch(output_dir):
     try:
         with open(os.path.join(output_dir, "stats.json"), "r") as f:
             return json.load(f)["epoch"]
-    except:
+    except Exception:
         return 0
 
 
