@@ -8,6 +8,7 @@ from zookeeper.tf import Dataset, Model
 
 from larq_zoo import utils
 from larq_zoo.train import TrainLarqZooModel
+from larq_zoo.weights import Weights
 
 
 @component
@@ -102,19 +103,19 @@ class BinaryAlexNet(Model):
         if weights == "imagenet":
             # Download appropriate file
             if include_top:
-                weights_path = utils.download_pretrained_model(
+                weights_path = Weights(
                     model="binary_alexnet",
                     version="v0.2.0",
                     file="binary_alexnet_weights.h5",
                     file_hash="0f8d3f6c1073ef993e2e99a38f8e661e5efe385085b2a84b43a7f2af8500a3d3",
-                )
+                ).get_path()
             else:
-                weights_path = utils.download_pretrained_model(
+                weights_path = Weights(
                     model="binary_alexnet",
                     version="v0.2.0",
                     file="binary_alexnet_weights_notop.h5",
                     file_hash="1c7e2ef156edd8e7615e75a3b8929f9025279a948d1911824c2f5a798042475e",
-                )
+                ).get_path()
             model.load_weights(weights_path)
         elif weights is not None:
             model.load_weights(weights)

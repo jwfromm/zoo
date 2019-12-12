@@ -42,7 +42,7 @@ class TrainLarqZooModel(Experiment):
     def model_path(self):
         return self.output_dir / "model"
 
-    metrics = ["categorical_accuracy", "top_k_categorical_accuracy"]
+    metrics = ["sparse_categorical_accuracy", "sparse_top_k_categorical_accuracy"]
 
     loss = "sparse_categorical_crossentropy"
 

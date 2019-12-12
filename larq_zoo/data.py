@@ -34,13 +34,6 @@ def preprocess_input(image):
 
 
 class ImageClassification(Preprocessing):
-    @property
-    def kwargs(self):
-        return {
-            "input_shape": self.features["image"].shape,
-            "num_classes": self.features["label"].num_classes,
-        }
-
     def input(self, data, training):
         return tf.cast(data["image"], tf.float32)
 

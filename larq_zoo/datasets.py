@@ -18,6 +18,13 @@ class Cifar10(TFDSDataset):
 
 @component
 class Mnist(TFDSDataset):
-    name = "mnist"
+    name = "mnist:3.0.*"
     train_split = "train"
+    validation_split = "test"
+
+
+@component
+class OxfordFlowers(TFDSDataset):
+    name = "oxford_flowers102:2.0.*"
+    train_split = "train+validation"
     validation_split = "test"

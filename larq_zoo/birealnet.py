@@ -3,14 +3,16 @@ from typing import Optional, Tuple
 import larq as lq
 import tensorflow as tf
 from tensorflow import keras
-from zookeeper import component
-from zookeeper.tf import Dataset
+from zookeeper import component, task
+from zookeeper.tf import Dataset, Model
 
 from larq_zoo import utils
-from larq_zoo.model import LarqZooModel
+from larq_zoo.train import TrainLarqZooModel
+from larq_zoo.weights import Weights
 
 
-class BiRealNet(LarqZooModel):
+@component
+class BiRealNet(Model):
     """
     # References
     - [Bi-Real Net: Enhancing the Performance of 1-bit CNNs With Improved
@@ -27,7 +29,6 @@ class BiRealNet(LarqZooModel):
     kernel_constraint: str = "weight_clip"
     kernel_initializer: str = "glorot_normal"
 
-    @tf.function
     def residual_block(
         self, x, double_filters: bool = False, filters: Optional[int] = None
     ) -> tf.Tensor:
@@ -68,10 +69,12 @@ class BiRealNet(LarqZooModel):
         self,
         input_shape: Optional[Tuple[int, int, int]] = None,
         input_tensor: Optional[tf.Tensor] = None,
+        include_top=True,
+        weights="imagenet",
     ) -> keras.models.Model:
 
         input_shape = utils.validate_input(
-            input_shape, self.weights, self.include_top, self.dataset.num_classes
+            input_shape, weights, include_top, self.dataset.num_classes
         )
         img_input = utils.get_input_layer(input_shape, input_tensor)
 
@@ -101,7 +104,7 @@ class BiRealNet(LarqZooModel):
                 out = self.residual_block(out)
 
         # Layer 18
-        if self.include_top:
+        if include_top:
             out = keras.layers.GlobalAvgPool2D()(out)
             out = keras.layers.Dense(self.dataset.num_classes, activation="softmax")(
                 out
@@ -110,23 +113,46 @@ class BiRealNet(LarqZooModel):
         model = keras.Model(inputs=img_input, outputs=out, name="birealnet18")
 
         # Load weights.
-        if self.weights == "imagenet":
+        if weights == "imagenet":
             # Download appropriate file
-            if self.include_top:
-                weights_path = utils.download_pretrained_model(
+            if include_top:
+                weights_path = Weights(
                     model="birealnet",
                     version="v0.3.0",
                     file="birealnet_weights.h5",
                     file_hash="6e6efac1584fcd60dd024198c87f42eb53b5ec719a5ca1f527e1fe7e8b997117",
-                )
+                ).get_path()
             else:
-                weights_path = utils.download_pretrained_model(
+                weights_path = Weights(
                     model="birealnet",
                     version="v0.3.0",
                     file="birealnet_weights_notop.h5",
                     file_hash="5148b61c0c2a1094bdef811f68bf4957d5ba5f83ad26437b7a4a6855441ab46b",
-                )
+                ).get_path()
             model.load_weights(weights_path)
-        elif self.weights is not None:
-            model.load_weights(self.weights)
+        elif weights is not None:
+            model.load_weights(weights)
         return model
+
+
+@task
+class TrainBiRealNet(TrainLarqZooModel):
+    model = BiRealNet()
+
+    batch_size = 512
+    epochs = 300
+
+    learning_rate: float = 5e-3
+    decay_schedule: str = "linear"
+
+    @property
+    def optimizer(self):
+        if self.decay_schedule == "linear_cosine":
+            lr = keras.experimental.LinearCosineDecay(self.learning_rate, 750684)
+        elif self.decay_schedule == "linear":
+            lr = keras.optimizers.schedules.PolynomialDecay(
+                self.learning_rate, 750684, end_learning_rate=0, power=1.0
+            )
+        else:
+            lr = self.learning_rate
+        return keras.optimizers.Adam(lr)
