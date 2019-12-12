@@ -1,4 +1,5 @@
-"""Provides utilities to preprocess images.
+"""
+Provides utilities to preprocess images.
 
 The ImageNet preprocessing from https://github.com/tensorflow/tpu/blob/master/models/official/efficientnet/preprocessing.py
 """

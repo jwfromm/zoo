@@ -10,7 +10,7 @@ from larq_zoo.densenet import (
     BinaryDenseNet45,
 )
 
-# from larq_zoo.dorefanet import DoReFaNet
+from larq_zoo.dorefanet import DoReFaNet
 from larq_zoo.data import preprocess_input
 from larq_zoo import datasets
 from larq_zoo.utils import decode_predictions
@@ -24,7 +24,7 @@ __all__ = [
     "BinaryDenseNet37",
     "BinaryDenseNet37Dilated",
     "BinaryDenseNet45",
-    # "DoReFaNet",
+    "DoReFaNet",
     "datasets",
     "decode_predictions",
     "preprocess_input",
