@@ -2,7 +2,7 @@ from larq_zoo.binarynet import BinaryAlexNet
 from larq_zoo.birealnet import BiRealNet
 
 # from larq_zoo.xnornet import XNORNet
-# from larq_zoo.resnet_e import BinaryResNetE18
+from larq_zoo.resnet_e import BinaryResNetE18
 from larq_zoo.densenet import (
     BinaryDenseNet28,
     BinaryDenseNet37,
@@ -19,7 +19,7 @@ __all__ = [
     "BinaryAlexNet",
     "BiRealNet",
     # "XNORNet",
-    # "BinaryResNetE18",
+    "BinaryResNetE18",
     "BinaryDenseNet28",
     "BinaryDenseNet37",
     "BinaryDenseNet37Dilated",
