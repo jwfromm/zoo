@@ -11,6 +11,10 @@ def train(build_model, dataset, hparams, output_dir, tensorboard):
     from larq_zoo import utils
     import tensorflow as tf
 
+    gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+    for device in gpu_devices:
+        tf.config.experimental.set_memory_growth(device, True)
+
     initial_epoch = utils.get_current_epoch(output_dir)
     model_path = path.join(output_dir, "model")
     callbacks = [utils.ModelCheckpoint(filepath=model_path, save_weights_only=True)]

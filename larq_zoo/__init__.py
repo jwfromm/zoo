@@ -11,6 +11,7 @@ from larq_zoo.densenet import (
 from larq_zoo.dorefanet import DoReFaNet
 from larq_zoo.data import preprocess_input
 from larq_zoo.utils import decode_predictions
+import larq_zoo.riptide
 
 __all__ = [
     "BinaryAlexNet",
