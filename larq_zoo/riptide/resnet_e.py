@@ -1,4 +1,5 @@
 from zookeeper import registry, HParams
+import tensorflow as tf
 from tensorflow import keras
 from larq_zoo import utils
 import larq as lq
@@ -99,12 +100,33 @@ def riptide_resnet_e(args, input_shape, num_classes, input_tensor=None, include_
             x = residual_block(x, args, filters, strides=strides)
 
     if include_top:
-        x = keras.layers.Activation("relu")(x)
+        x = keras.layers.Activation("clip_by_value_activation")(x)
         x = keras.layers.GlobalAvgPool2D()(x)
         x = keras.layers.Dense(
             num_classes, activation="softmax", kernel_initializer="glorot_normal"
         )(x)
     return keras.Model(inputs=input, outputs=x, name=args.name)
+
+
+@lq.utils.register_keras_custom_object
+@lq.utils.set_precision(1)
+def magnitude_aware_sign_unclipped(x):
+    """
+    Scaled sign function with identity pseudo-gradient as used for the
+    weights in the DoReFa paper. The Scale factor is calculated per layer.
+    """
+    scale_factor = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
+
+    @tf.custom_gradient
+    def _magnitude_aware_sign(x):
+        return lq.math.sign(x) * scale_factor, lambda dy: dy
+
+    return _magnitude_aware_sign(x)
+
+
+@lq.utils.register_keras_custom_object
+def clip_by_value_activation(x):
+    return tf.clip_by_value(x, 0, 1)
 
 
 @registry.register_hparams(riptide_resnet_e)
@@ -117,11 +139,19 @@ class default(HParams):
     learning_factor = 0.3
     learning_steps = [70, 90, 110]
     initial_filters = 64
-    quantizer = lq.quantizers.SteSign(clip_value=1.25)
-    constraint = lq.constraints.WeightClip(clip_value=1.25)
+    #quantizer = lq.quantizers.SteSign(clip_value=1.25)
+    #constraint = lq.constraints.WeightClip(clip_value=1.25)
     activations_k_bit = 1
     use_shiftnorm = True
     quantize_downsample = True
+
+    @property
+    def input_quantizer(self):
+        return lq.quantizers.DoReFaQuantizer(k_bit=self.activations_k_bit)
+
+    @property
+    def kernel_quantizer(self):
+        return magnitude_aware_sign_unclipped
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
