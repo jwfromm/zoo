@@ -56,6 +56,7 @@ def riptide_dorefa_net(hparams, input_shape, num_classes, input_tensor=None, inc
     out = tf.keras.layers.Conv2D(96, kernel_size=12, strides=4, padding="valid", use_bias=True)(
         img_input
     )
+    out = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9, epsilon=1e-4)(out)
     out = conv_block(out, filters=256, kernel_size=5, pool=True)
     out = conv_block(out, filters=384, kernel_size=3, pool=True)
     out = conv_block(out, filters=384, kernel_size=3)
