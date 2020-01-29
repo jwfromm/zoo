@@ -7,13 +7,34 @@ import larq as lq
 def residual_block(x, args, filters, strides=1):
     downsample = x.get_shape().as_list()[-1] != filters
 
-    # TODO downsampling likely should be binarized.
     if downsample:
         residual = keras.layers.AvgPool2D(pool_size=2, strides=2)(x)
-        residual = keras.layers.Conv2D(
-            filters, kernel_size=1, use_bias=False, kernel_initializer="glorot_normal"
-        )(residual)
-        residual = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-5)(residual)
+        if args.quantize_downsample:
+            conv_layer = lq.layers.QuantConv2D(
+                filters,
+                kernel_size=1,
+                input_quantizer=args.quantizer,
+                kernel_quantizer=args.quantizer,
+                kernel_constraint=args.constraint,
+                kernel_initializer="glorot_normal",
+                use_bias=False,
+                metrics=[],
+            )
+            residual = conv_layer(residual)
+            residual = lq.riptide.BatchNormalization(
+                use_shiftnorm=args.use_shiftnorm,
+                bits=args.activations_k_bit,
+                previous_layer=conv_layer,
+                scale=False,
+                momentum=0.9,
+                epsilon=1e-5,
+                residual_output=True,
+            )(residual)
+        else:
+            residual = keras.layers.Conv2D(
+                filters, kernel_size=1, use_bias=False, kernel_initializer="glorot_normal"
+            )(residual)
+            residual = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-5)(residual)
     else:
         residual = x
 
@@ -100,6 +121,7 @@ class default(HParams):
     constraint = lq.constraints.WeightClip(clip_value=1.25)
     activations_k_bit = 1
     use_shiftnorm = True
+    quantize_downsample = True
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
