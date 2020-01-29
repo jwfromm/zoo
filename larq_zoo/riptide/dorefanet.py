@@ -74,22 +74,6 @@ def riptide_dorefa_net(hparams, input_shape, num_classes, input_tensor=None, inc
 
 
 @lq.utils.register_keras_custom_object
-@lq.utils.set_precision(1)
-def magnitude_aware_sign_unclipped(x):
-    """
-    Scaled sign function with identity pseudo-gradient as used for the
-    weights in the DoReFa paper. The Scale factor is calculated per layer.
-    """
-    scale_factor = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
-
-    @tf.custom_gradient
-    def _magnitude_aware_sign(x):
-        return lq.math.sign(x) * scale_factor, lambda dy: dy
-
-    return _magnitude_aware_sign(x)
-
-
-@lq.utils.register_keras_custom_object
 def clip_by_value_activation(x):
     return tf.clip_by_value(x, 0, 1)
 
@@ -111,7 +95,7 @@ class default(HParams):
 
     @property
     def kernel_quantizer(self):
-        return magnitude_aware_sign_unclipped
+        return lq.riptide.XQuantize
 
     def learning_rate_schedule(self, epoch):
         if epoch < self.decay_start:
