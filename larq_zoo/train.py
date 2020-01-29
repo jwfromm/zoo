@@ -24,7 +24,7 @@ def train(build_model, dataset, hparams, output_dir, tensorboard):
         )
     if tensorboard:
         callbacks.append(
-            tf.keras.callbacks.TensorBoard(log_dir=output_dir, write_graph=False)
+            tf.keras.callbacks.TensorBoard(log_dir=output_dir, write_graph=True)
         )
 
     with tf.device("/cpu:0"):
