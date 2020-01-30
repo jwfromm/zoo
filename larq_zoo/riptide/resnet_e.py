@@ -123,8 +123,8 @@ class default(HParams):
     learning_factor = 0.3
     learning_steps = [70, 90, 110]
     initial_filters = 64
-    #quantizer = lq.quantizers.SteSign(clip_value=1.25)
-    #constraint = lq.constraints.WeightClip(clip_value=1.25)
+    # quantizer = lq.quantizers.SteSign(clip_value=1.25)
+    # constraint = lq.constraints.WeightClip(clip_value=1.25)
     activations_k_bit = 1
     use_shiftnorm = True
     quantize_downsample = True
@@ -135,7 +135,7 @@ class default(HParams):
 
     @property
     def kernel_quantizer(self):
-        return lq.riptide.XQuantize
+        return lq.riptide.magnitude_aware_sign_unclipped
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
