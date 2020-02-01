@@ -26,7 +26,6 @@ def residual_block(x, args, filters, strides=1):
                 use_shiftnorm=args.use_shiftnorm,
                 bits=args.activations_k_bit,
                 previous_layer=conv_layer,
-                scale=False,
                 momentum=0.9,
                 epsilon=1e-5,
                 residual_output=True,
