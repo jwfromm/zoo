@@ -27,14 +27,14 @@ def residual_block(x, args, filters, strides=1):
                 bits=args.activations_k_bit,
                 previous_layer=conv_layer,
                 momentum=0.9,
-                epsilon=1e-5,
+                epsilon=1e-4,
                 residual_output=True,
             )(residual)
         else:
             residual = keras.layers.Conv2D(
                 filters, kernel_size=1, use_bias=False, kernel_initializer="glorot_normal"
             )(residual)
-            residual = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-5)(residual)
+            residual = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-4)(residual)
     else:
         residual = x
 
@@ -86,10 +86,10 @@ def riptide_resnet_e(args, input_shape, num_classes, input_tensor=None, include_
             use_bias=False,
         )(input)
 
-        x = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-4)(x)
         x = keras.layers.Activation("relu")(x)
         x = keras.layers.MaxPool2D(3, strides=2, padding="same")(x)
-        x = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
+        x = keras.layers.BatchNormalization(momentum=0.9, epsilon=1e-4)(x)
 
     for block, (layers, filters) in enumerate(zip(*args.spec)):
         # this tricks adds shortcut connections between original resnet blocks
@@ -146,7 +146,7 @@ class default(HParams):
 
     @property
     def optimizer(self):
-        return keras.optimizers.Adam(self.learning_rate, epsilon=1e-8)
+        return keras.optimizers.Adam(self.learning_rate, epsilon=1e-7)
 
     @property
     def spec(self):
