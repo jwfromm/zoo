@@ -16,19 +16,19 @@ def residual_block(x, args, filters, strides=1):
                 kernel_size=1,
                 input_quantizer=args.input_quantizer,
                 kernel_quantizer=args.kernel_quantizer,
-                kernel_constraint=None,
+                kernel_constraint=args.constraint,
                 kernel_initializer="glorot_normal",
                 use_bias=False,
                 metrics=[],
             )
             residual = conv_layer(residual)
             residual = lq.riptide.BatchNormalization(
-                use_shiftnorm=args.use_shiftnorm,
+                latent_weights = conv_layer.weights[0],
                 bits=args.activations_k_bit,
-                previous_layer=conv_layer,
+                use_shiftnorm=args.use_shiftnorm,
                 momentum=0.9,
                 epsilon=1e-4,
-                residual_output=True,
+                residual_output=args.quantize_residual,
             )(residual)
         else:
             residual = keras.layers.Conv2D(
@@ -45,20 +45,19 @@ def residual_block(x, args, filters, strides=1):
         padding="same",
         input_quantizer=args.input_quantizer,
         kernel_quantizer=args.kernel_quantizer,
-        kernel_constraint=None,
+        kernel_constraint=args.constraint,
         kernel_initializer="glorot_normal",
         use_bias=False,
         metrics=[],
     )
     x = conv_layer(x)
     x = lq.riptide.BatchNormalization(
-        use_shiftnorm=args.use_shiftnorm,
+        latent_weights = conv_layer.weights[0],
         bits=args.activations_k_bit,
-        previous_layer=conv_layer,
-        scale=False,
+        use_shiftnorm=args.use_shiftnorm,
         momentum=0.9,
         epsilon=1e-4,
-        residual_output=True,
+        residual_output=args.quantize_residual,
     )(x)
 
     return keras.layers.add([x, residual])
@@ -99,7 +98,8 @@ def riptide_resnet_e(args, input_shape, num_classes, input_tensor=None, include_
             x = residual_block(x, args, filters, strides=strides)
 
     if include_top:
-        x = keras.layers.Activation("clip_by_value_activation")(x)
+        #x = keras.layers.Activation("clip_by_value_activation")(x)
+        x = keras.layers.Activation("relu")(x)
         x = keras.layers.GlobalAvgPool2D()(x)
         x = keras.layers.Dense(
             num_classes, activation="softmax", kernel_initializer="glorot_normal"
@@ -122,19 +122,21 @@ class default(HParams):
     learning_factor = 0.3
     learning_steps = [70, 90, 110]
     initial_filters = 64
-    # quantizer = lq.quantizers.SteSign(clip_value=1.25)
-    # constraint = lq.constraints.WeightClip(clip_value=1.25)
+    constraint = lq.constraints.WeightClip(clip_value=1.25)
     activations_k_bit = 1
     use_shiftnorm = True
-    quantize_downsample = True
+    quantize_downsample = False
+    quantize_residual = False
 
     @property
     def input_quantizer(self):
-        return lq.quantizers.DoReFaQuantizer(k_bit=self.activations_k_bit)
+        return lq.quantizers.SteSign(clip_value=1.25)
+        #return lq.quantizers.DoReFaQuantizer(k_bit=self.activations_k_bit)
 
     @property
     def kernel_quantizer(self):
-        return lq.riptide.magnitude_aware_sign_unclipped
+        return lq.quantizers.SteSign(clip_value=1.25)
+        #return lq.riptide.magnitude_aware_sign_unclipped
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
