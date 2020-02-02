@@ -23,12 +23,10 @@ def residual_block(x, args, filters, strides=1):
             )
             residual = conv_layer(residual)
             residual = lq.riptide.BatchNormalization(
-                latent_weights = conv_layer.weights[0],
                 bits=args.activations_k_bit,
                 use_shiftnorm=args.use_shiftnorm,
                 momentum=0.9,
                 epsilon=1e-4,
-                residual_output=args.quantize_residual,
             )(residual)
         else:
             residual = keras.layers.Conv2D(
@@ -52,12 +50,10 @@ def residual_block(x, args, filters, strides=1):
     )
     x = conv_layer(x)
     x = lq.riptide.BatchNormalization(
-        latent_weights = conv_layer.weights[0],
         bits=args.activations_k_bit,
         use_shiftnorm=args.use_shiftnorm,
         momentum=0.9,
         epsilon=1e-4,
-        residual_output=args.quantize_residual,
     )(x)
 
     return keras.layers.add([x, residual])
@@ -98,7 +94,6 @@ def riptide_resnet_e(args, input_shape, num_classes, input_tensor=None, include_
             x = residual_block(x, args, filters, strides=strides)
 
     if include_top:
-        #x = keras.layers.Activation("clip_by_value_activation")(x)
         x = keras.layers.Activation("relu")(x)
         x = keras.layers.GlobalAvgPool2D()(x)
         x = keras.layers.Dense(
@@ -126,7 +121,6 @@ class default(HParams):
     activations_k_bit = 1
     use_shiftnorm = True
     quantize_downsample = False
-    quantize_residual = False
 
     @property
     def input_quantizer(self):
