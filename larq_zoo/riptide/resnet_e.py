@@ -23,7 +23,8 @@ def residual_block(x, args, filters, strides=1):
             )
             residual = conv_layer(residual)
             residual = lq.riptide.BatchNormalization(
-                bits=args.activations_k_bit,
+                bits=args.activations_bits,
+                unipolar=args.unipolar,
                 use_shiftnorm=args.use_shiftnorm,
                 momentum=0.9,
                 epsilon=1e-4,
@@ -50,7 +51,8 @@ def residual_block(x, args, filters, strides=1):
     )
     x = conv_layer(x)
     x = lq.riptide.BatchNormalization(
-        bits=args.activations_k_bit,
+        bits=args.activation_bits,
+        unipolar=args.unipolar,
         use_shiftnorm=args.use_shiftnorm,
         momentum=0.9,
         epsilon=1e-4,
@@ -102,11 +104,6 @@ def riptide_resnet_e(args, input_shape, num_classes, input_tensor=None, include_
     return keras.Model(inputs=input, outputs=x, name=args.name)
 
 
-@lq.utils.register_keras_custom_object
-def clip_by_value_activation(x):
-    return tf.clip_by_value(x, 0, 1)
-
-
 @registry.register_hparams(riptide_resnet_e)
 class default(HParams):
     name = "binary_resnet_e_18"
@@ -118,19 +115,18 @@ class default(HParams):
     learning_steps = [70, 90, 110]
     initial_filters = 64
     constraint = lq.constraints.WeightClip(clip_value=1.25)
-    activations_k_bit = 1
+    activation_bits = 1
+    unipolar = False
     use_shiftnorm = True
     quantize_downsample = False
 
     @property
     def input_quantizer(self):
-        return lq.quantizers.SteSign(clip_value=1.25)
-        #return lq.quantizers.DoReFaQuantizer(k_bit=self.activations_k_bit)
+        return lq.riptide.LinearQuantizer(bits=self.activation_bits, clip_value=1.25, unipolar=self.unipolar)
 
     @property
     def kernel_quantizer(self):
         return lq.quantizers.SteSign(clip_value=1.25)
-        #return lq.riptide.magnitude_aware_sign_unclipped
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
