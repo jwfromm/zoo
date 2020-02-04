@@ -23,7 +23,8 @@ def residual_block(x, args, filters, strides=1):
             )
             residual = conv_layer(residual)
             residual = lq.riptide.BatchNormalization(
-                bits=args.activations_bits,
+                activation_bits=args.activations_bits,
+                weight_bits=args.weight_bits,
                 unipolar=args.unipolar,
                 use_shiftnorm=args.use_shiftnorm,
                 momentum=0.9,
@@ -51,7 +52,8 @@ def residual_block(x, args, filters, strides=1):
     )
     x = conv_layer(x)
     x = lq.riptide.BatchNormalization(
-        bits=args.activation_bits,
+        activation_bits=args.activation_bits,
+        weight_bits=args.weight_bits,
         unipolar=args.unipolar,
         use_shiftnorm=args.use_shiftnorm,
         momentum=0.9,
