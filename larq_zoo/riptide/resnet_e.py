@@ -116,6 +116,7 @@ class default(HParams):
     initial_filters = 64
     constraint = lq.constraints.WeightClip(clip_value=1.25)
     activation_bits = 1
+    weight_bits = 1
     unipolar = False
     use_shiftnorm = True
     quantize_downsample = False
@@ -126,7 +127,7 @@ class default(HParams):
 
     @property
     def kernel_quantizer(self):
-        return lq.quantizers.SteSign(clip_value=1.25)
+        return lq.riptide.LinearQuantizer(bits=self.weight_bits, clip_value=1.25, unipolar=False)
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
