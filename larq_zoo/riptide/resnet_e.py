@@ -122,14 +122,22 @@ class default(HParams):
     unipolar = False
     use_shiftnorm = True
     quantize_downsample = False
+    use_pact = False
 
     @property
     def input_quantizer(self):
-        return lq.riptide.LinearQuantizer(bits=self.activation_bits, clip_value=1.25, unipolar=self.unipolar)
+        if self.use_pact:
+            return lq.riptide.PACTQuantizer(bits=self.activation_bits)
+        else:
+            return lq.riptide.LinearQuantizer(bits=self.activation_bits, clip_value=1.25, unipolar=self.unipolar)
 
     @property
     def kernel_quantizer(self):
-        return lq.riptide.LinearQuantizer(bits=self.weight_bits, clip_value=1.25, unipolar=False)
+        if self.use_pact:
+            # SAWB does not use weight constraints.
+            return lq.riptide.SAWBQuantizer(bits=self.weight_bits)
+        else:
+            return lq.riptide.LinearQuantizer(bits=self.weight_bits, clip_value=1.25, unipolar=False)
 
     def learning_rate_schedule(self, epoch):
         lr = self.learning_rate
