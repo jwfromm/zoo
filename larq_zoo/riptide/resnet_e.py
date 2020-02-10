@@ -112,9 +112,6 @@ class default(HParams):
     epochs = 120
     batch_size = 1024
     num_layers = 18
-    learning_rate = 0.004
-    learning_factor = 0.3
-    learning_steps = [70, 90, 110]
     initial_filters = 64
     constraint = lq.constraints.WeightClip(clip_value=1.25)
     activation_bits = 1
@@ -123,6 +120,28 @@ class default(HParams):
     use_shiftnorm = True
     quantize_downsample = False
     use_pact = False
+    use_sgd = False
+
+    @property
+    def learning_rate(self):
+        if self.use_sgd:
+            return 0.4
+        else:
+            return 0.004
+
+    @property
+    def learning_factor(self):
+        if self.use_sgd:
+            return 0.1
+        else:
+            return 0.3
+
+    @property
+    def learning_steps(self):
+        if self.use_sgd:
+            return [30, 60, 85, 95] 
+        else:
+            return [70, 90, 110]
 
     @property
     def input_quantizer(self):
@@ -149,7 +168,10 @@ class default(HParams):
 
     @property
     def optimizer(self):
-        return keras.optimizers.Adam(self.learning_rate, epsilon=1e-7)
+        if self.use_sgd:
+            return keras.optimizers.SGD(self.learning_rate, momentum=0.9)
+        else:
+            return keras.optimizers.Adam(self.learning_rate, epsilon=1e-7)
 
     @property
     def spec(self):
