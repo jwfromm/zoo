@@ -125,9 +125,9 @@ class default(HParams):
     @property
     def learning_rate(self):
         if self.use_sgd:
-            return 0.4
+            return 0.1 * (self.batch_size / 256.0)
         else:
-            return 0.004
+            return 0.004 * (self.batch_size / 1024.0)
 
     @property
     def learning_factor(self):
